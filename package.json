@@ -1,8 +1,8 @@
 {
-  "name": "bufferstruct",
+  "name": "bufferstruct-js",
   "version": "1.0.0",
   "description": "",
-  "main": "bufferstruct.ts",
+  "main": "index.ts",
   "author": "Sasha Broslavskiy",
   "license": "ISC",
   "dependencies": {
