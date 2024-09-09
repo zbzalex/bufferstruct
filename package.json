@@ -4,10 +4,14 @@
   "description": "",
   "main": "index.ts",
   "author": "Sasha Broslavskiy",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@types/jest": "^29.5.12",
     "jest": "^29.7.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/zbzalex/bufferstruct.git"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
