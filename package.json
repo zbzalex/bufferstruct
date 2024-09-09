@@ -1,0 +1,23 @@
+{
+  "name": "bufferstruct",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bufferstruct.ts",
+  "author": "Sasha Broslavskiy",
+  "license": "ISC",
+  "dependencies": {
+    "@types/jest": "^29.5.12",
+    "jest": "^29.7.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.4",
+    "@babel/preset-typescript": "^7.24.7",
+    "babel-jest": "^29.7.0",
+    "lodash": "^4.17.21",
+    "ts-jest": "^29.2.5"
+  },
+  "scripts": {
+    "test": "jest"
+  }
+}
