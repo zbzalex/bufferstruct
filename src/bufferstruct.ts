@@ -1,4 +1,5 @@
 import type { RawStruct } from "./types"
+import { parseType } from "./utils"
 
 export class BufferStruct<T extends RawStruct> {
   private struct: T
@@ -7,104 +8,78 @@ export class BufferStruct<T extends RawStruct> {
     this.struct = struct
   }
 
-  getSize(): number {
-    let size = 0
-    let keys = Object.keys(this.struct)
-    for (const key of keys) {
-      size += this.getTypeSize(this.struct[key])
-    }
-
-    return size
-  }
-
   getTypeSize(type: string): number {
-    let m: RegExpMatchArray | null = null
-
-    if ((m = type.match(/^(\w+)\[(\d+)\]$/)) !== null) {
-      const type = m[1]
-      const size = Number(m[2])
-
-      return this.getTypeSize(type) * size
-    } else {
-      switch (type) {
-        case "bytes":
-          return 1
-        case "int16LE":
-        case "int16BE":
-        case "uint16LE":
-        case "uint16BE":
-          return 2
-        case "int32LE":
-        case "int32BE":
-        case "uint32LE":
-        case "uint32BE":
-        case "floatLE":
-        case "floatBE":
-          return 4
-        case "int64LE":
-        case "int64BE":
-        case "uint64LE":
-        case "uint64BE":
-        case "doubleLE":
-        case "doubleBE":
-          return 8
-      }
+    switch (type) {
+      case "bytes":
+        return 1
+      case "int16LE":
+      case "int16BE":
+      case "uint16LE":
+      case "uint16BE":
+        return 2
+      case "int32LE":
+      case "int32BE":
+      case "uint32LE":
+      case "uint32BE":
+      case "floatLE":
+      case "floatBE":
+        return 4
+      case "int64LE":
+      case "int64BE":
+      case "uint64LE":
+      case "uint64BE":
+      case "doubleLE":
+      case "doubleBE":
+        return 8
     }
 
     return 0
   }
 
   pack<Props extends { [P in keyof T]: string | number | bigint | Buffer | Array<number> }>(data: Props): Buffer {
-    let buf = Buffer.alloc(this.getSize())
-    let offset = 0
+    let buf = Buffer.alloc(0)
     let keys = Object.keys(this.struct)
-    
+
     if (JSON.stringify(Object.keys(data).sort()) !== JSON.stringify(Object.keys(this.struct).sort()))
       throw new Error("Structure mismatch");
 
     for (const key of keys) {
+      const dataArr = Array.isArray(data[key]) ? data[key] : [data[key]]
+      const type = parseType(this.struct[key])
+      const typeSize = this.getTypeSize(type.datatype)
 
-      const type = this.struct[key].split('[')[0]
-      const size = this.getTypeSize(this.struct[key])
+      let i, ii
+      let bytesSize = type.size === 0 ? dataArr.length * typeSize : typeSize * type.size
+      let buf2 = Buffer.alloc(bytesSize)
+      let buf3
+      let offset = 0
 
-      let i: number
-      let ii: number
-      let dataArr = Array.isArray(data[key]) ? data[key] : [data[key]]
-
-      switch (type) {
+      switch (type.datatype) {
         case "bytes":
+          const sourceBuffer = typeof data[key] === 'string' ? Buffer.from(data[key] as string) : data[key] as Buffer
 
-          if (typeof data[key] === 'object') {
-            for (
-              i = 0, ii = size;
-              i < ii;
-              i++
-            ) {
-              buf.writeUint8(data[key][i], offset)
+          bytesSize = type.size === 0 ? sourceBuffer.byteLength : typeSize * type.size
+          buf2 = Buffer.alloc(bytesSize)
 
-              offset++
-            }
-          } else {
-
-            for (
-              i = 0, ii = size;
-              i < ii;
-              i++
-            ) {
-              // @ts-ignore
-              buf.writeUint8(data[key].length > i ? data[key].charCodeAt(i) : 0, offset)
-
-              offset++
-            }
-          }
-          break;
-        case "int16LE":
           for (
-            i = 0, ii = size / 2;
+            i = 0, ii = bytesSize;
             i < ii;
             i++
           ) {
-            buf.writeInt16LE(
+            buf2.writeUint8(sourceBuffer[i], offset)
+
+            offset++
+          }
+
+          break;
+
+        case "int16LE":
+          for (
+            i = 0, ii = bytesSize / 2;
+            i < ii;
+            i++
+          ) {
+            buf2.writeInt16LE(
               Number(dataArr[i]),
               offset
             )
@@ -114,11 +89,11 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "int16BE":
           for (
-            i = 0, ii = size / 2;
+            i = 0, ii = bytesSize / 2;
             i < ii;
             i++
           ) {
-            buf.writeInt16BE(
+            buf2.writeInt16BE(
               Number(dataArr[i]),
               offset
             )
@@ -128,11 +103,11 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "uint16LE":
           for (
-            i = 0, ii = size / 2;
+            i = 0, ii = bytesSize / 2;
             i < ii;
             i++
           ) {
-            buf.writeUint16LE(
+            buf2.writeUint16LE(
               Number(dataArr[i]),
               offset
             )
@@ -142,11 +117,11 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "uint16BE":
           for (
-            i = 0, ii = size / 2;
+            i = 0, ii = bytesSize / 2;
             i < ii;
             i++
           ) {
-            buf.writeUint16BE(
+            buf2.writeUint16BE(
               Number(dataArr[i]),
               offset
             )
@@ -156,11 +131,11 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "int32LE":
           for (
-            i = 0, ii = size / 4;
+            i = 0, ii = bytesSize / 4;
             i < ii;
             i++
           ) {
-            buf.writeInt32LE(
+            buf2.writeInt32LE(
               Number(dataArr[i]),
               offset
             )
@@ -170,11 +145,11 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "int32BE":
           for (
-            i = 0, ii = size / 4;
+            i = 0, ii = bytesSize / 4;
             i < ii;
             i++
           ) {
-            buf.writeInt32BE(
+            buf2.writeInt32BE(
               Number(dataArr[i]),
               offset
             )
@@ -184,11 +159,11 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "uint32LE":
           for (
-            i = 0, ii = size / 4;
+            i = 0, ii = bytesSize / 4;
             i < ii;
             i++
           ) {
-            buf.writeUint32LE(
+            buf2.writeUint32LE(
               Number(dataArr[i]),
               offset
             )
@@ -198,11 +173,11 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "uint32BE":
           for (
-            i = 0, ii = size / 4;
+            i = 0, ii = bytesSize / 4;
             i < ii;
             i++
           ) {
-            buf.writeUint32BE(
+            buf2.writeUint32BE(
               Number(dataArr[i]),
               offset
             )
@@ -212,11 +187,11 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "floatLE":
           for (
-            i = 0, ii = size / 4;
+            i = 0, ii = bytesSize / 4;
             i < ii;
             i++
           ) {
-            buf.writeFloatLE(
+            buf2.writeFloatLE(
               Number(dataArr[i]),
               offset
             )
@@ -226,11 +201,11 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "floatBE":
           for (
-            i = 0, ii = size / 4;
+            i = 0, ii = bytesSize / 4;
             i < ii;
             i++
           ) {
-            buf.writeFloatBE(
+            buf2.writeFloatBE(
               Number(dataArr[i]),
               offset
             )
@@ -240,11 +215,11 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "int64LE":
           for (
-            i = 0, ii = size / 8;
+            i = 0, ii = bytesSize / 8;
             i < ii;
             i++
           ) {
-            buf.writeBigInt64LE(
+            buf2.writeBigInt64LE(
               BigInt(dataArr[i] as string),
               offset
             )
@@ -254,11 +229,11 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "int64BE":
           for (
-            i = 0, ii = size / 8;
+            i = 0, ii = bytesSize / 8;
             i < ii;
             i++
           ) {
-            buf.writeBigInt64BE(
+            buf2.writeBigInt64BE(
               BigInt(dataArr[i] as string),
               offset
             )
@@ -268,11 +243,11 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "uint64LE":
           for (
-            i = 0, ii = size / 8;
+            i = 0, ii = bytesSize / 8;
             i < ii;
             i++
           ) {
-            buf.writeBigUint64LE(
+            buf2.writeBigUint64LE(
               BigInt(dataArr[i] as string),
               offset
             )
@@ -282,11 +257,11 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "uint64BE":
           for (
-            i = 0, ii = size / 8;
+            i = 0, ii = bytesSize / 8;
             i < ii;
             i++
           ) {
-            buf.writeBigUint64BE(
+            buf2.writeBigUint64BE(
               BigInt(dataArr[i] as string),
               offset
             )
@@ -296,11 +271,11 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "doubleLE":
           for (
-            i = 0, ii = size / 8;
+            i = 0, ii = bytesSize / 8;
             i < ii;
             i++
           ) {
-            buf.writeDoubleLE(
+            buf2.writeDoubleLE(
               Number(dataArr[i]),
               offset
             )
@@ -310,11 +285,11 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "doubleBE":
           for (
-            i = 0, ii = size / 8;
+            i = 0, ii = bytesSize / 8;
             i < ii;
             i++
           ) {
-            buf.writeDoubleBE(
+            buf2.writeDoubleBE(
               Number(dataArr[i]),
               offset
             )
@@ -324,6 +299,21 @@ export class BufferStruct<T extends RawStruct> {
           break;
       }
 
+      // Create buf
+      buf3 = Buffer.alloc(buf.byteLength + bytesSize)
+
+      // Copy original buf
+      buf.copy(buf3)
+      // Copy new buf
+      buf2.copy(buf3, buf.byteLength)
+
+      buf2 = null
+
+      // Set net buffer
+      buf  = buf3
+
+      buf3 = null
+      
     }
 
     return buf
@@ -336,18 +326,21 @@ export class BufferStruct<T extends RawStruct> {
 
     for (const key of keys) {
 
-      const type = this.struct[key].split('[')[0]
-      const size = this.getTypeSize(this.struct[key])
+      const type = parseType(this.struct[key])
+      const typeSize = this.getTypeSize(type.datatype)
 
-      let i: number
-      let ii: number
+      let i
+      let ii
       let arr: any[] = []
+      let bytesSize = type.size === 0
+        ? fromBuffer.byteLength - offset
+        : typeSize * type.size
 
-      switch (type) {
+      switch (type.datatype) {
         case "bytes":
 
           for (
-            i = 0, ii = size;
+            i = 0, ii = bytesSize;
             i < ii;
             i++
           ) {
@@ -361,7 +354,7 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "int16LE":
           for (
-            i = 0, ii = size / 2;
+            i = 0, ii = bytesSize / 2;
             i < ii;
             i++
           ) {
@@ -375,7 +368,7 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "int16BE":
           for (
-            i = 0, ii = size / 2;
+            i = 0, ii = bytesSize / 2;
             i < ii;
             i++
           ) {
@@ -389,7 +382,7 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "int32LE":
           for (
-            i = 0, ii = size / 4;
+            i = 0, ii = bytesSize / 4;
             i < ii;
             i++
           ) {
@@ -403,7 +396,7 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "int32BE":
           for (
-            i = 0, ii = size / 4;
+            i = 0, ii = bytesSize / 4;
             i < ii;
             i++
           ) {
@@ -417,7 +410,7 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "floatLE":
           for (
-            i = 0, ii = size / 4;
+            i = 0, ii = bytesSize / 4;
             i < ii;
             i++
           ) {
@@ -431,7 +424,7 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "floatBE":
           for (
-            i = 0, ii = size / 4;
+            i = 0, ii = bytesSize / 4;
             i < ii;
             i++
           ) {
@@ -445,7 +438,7 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "int64LE":
           for (
-            i = 0, ii = size / 8;
+            i = 0, ii = bytesSize / 8;
             i < ii;
             i++
           ) {
@@ -459,7 +452,7 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "int64BE":
           for (
-            i = 0, ii = size / 8;
+            i = 0, ii = bytesSize / 8;
             i < ii;
             i++
           ) {
@@ -473,7 +466,7 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "doubleLE":
           for (
-            i = 0, ii = size / 8;
+            i = 0, ii = bytesSize / 8;
             i < ii;
             i++
           ) {
@@ -487,7 +480,7 @@ export class BufferStruct<T extends RawStruct> {
           break;
         case "doubleBE":
           for (
-            i = 0, ii = size / 8;
+            i = 0, ii = bytesSize / 8;
             i < ii;
             i++
           ) {
@@ -504,9 +497,5 @@ export class BufferStruct<T extends RawStruct> {
     }
 
     return obj
-  }
-
-  toType(): string {
-    return "bytes[" + this.getSize() + "]"
   }
 }

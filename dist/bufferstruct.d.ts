@@ -2,7 +2,6 @@ import type { RawStruct } from "./types";
 export declare class BufferStruct<T extends RawStruct> {
     private struct;
     constructor(struct: T);
-    getSize(): number;
     getTypeSize(type: string): number;
     pack<Props extends {
         [P in keyof T]: string | number | bigint | Buffer | Array<number>;
@@ -10,5 +9,4 @@ export declare class BufferStruct<T extends RawStruct> {
     unpack(fromBuffer: Buffer): {
         [key: string]: number | number[] | BigInt | Buffer | BigInt[];
     };
-    toType(): string;
 }

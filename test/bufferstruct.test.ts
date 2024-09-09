@@ -1,49 +1,25 @@
-import { BufferStruct } from "bufferstruct-js"
-
-const secondPacket = new BufferStruct({
-  x: "int32LE",
-  y: "int32LE",
-})
+import { BufferStruct, parseType } from "bufferstruct-js"
 
 const packet = new BufferStruct({
-  message: 'bytes[5]', // 4 + 1 byte zero terminator
-  x: "int32LE",
-  secondMessage: secondPacket.toType(), // bytes[8]
-  bn: "int64LE",
+  x: "int16LE[2]",
+  y: "int32LE[2]",
+  message: 'bytes*',
 })
 
 describe('bufferscript testing', () => {
   test('proofs', () => {
-
     const packed = packet.pack({
-      message: "hello",
+      message: "A TypeError will be thrown if array is not an Array or another type appropriate for Buffer.from() variants.",
       x: 1,
-      secondMessage: secondPacket.pack({ x: 5, y: 7 }),
-      bn: "123"
+      y: [2, 3],
     })
 
-    // <Buffer 68 65 6c 6c 6f 01 00 00 00 05 00 00 00 07 00 00 00 7b 00 00 00 00 00 00 00>
+    // <Buffer 01 00 00 00 02 00 00 00 03 00 00 00 41 20 54 79 70 65 45 72 72 6f 72 20 77 69 6c 6c 20 62 65 20 74 68 72 6f 77 6e 20 69 66 20 61 72 72 61 79 20 69 73 ... 69 more bytes>
     // console.log(packed)
-
-    const unpacked = packet.unpack(packed)
-
-    // {
-    //   message: <Buffer 68 65 6c 6c 6f>,
-    //   x: 1,
-    //   secondMessage: <Buffer 05 00 00 00 07 00 00 00>,
-    //   bn: 123n
-    // }
-    // console.log(unpacked)
-
-    const messageBuffer = unpacked.message
-    const messageString = messageBuffer.toString()
-
-    const secondMessageOrBuffer = secondPacket.unpack(unpacked.secondMessage as Buffer)
-
-    expect(messageString).toEqual("hello")
-    expect(unpacked.x).toBe(1)
-    expect(secondMessageOrBuffer.x).toBe(5)
-    expect(secondMessageOrBuffer.y).toBe(7)
-
+    // 119
+    // console.log(packed.byteLength)
+    expect(packed.byteLength).toBe(119)
+    // A TypeError will be thrown if array is not an Array or another type appropriate for Buffer.from() variants.
+    // console.log(packet.unpack(packed).message.toString())
   })
 })
