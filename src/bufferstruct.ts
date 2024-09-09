@@ -1,6 +1,6 @@
 import type { RawStruct } from "./types"
 
-export default class BufferStruct<T extends RawStruct> {
+export class BufferStruct<T extends RawStruct> {
   private struct: T
 
   constructor(struct: T) {

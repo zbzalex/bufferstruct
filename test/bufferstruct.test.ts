@@ -1,4 +1,4 @@
-import BufferStruct from "./bufferstruct"
+import { BufferStruct } from "bufferstruct-js"
 
 const secondPacket = new BufferStruct({
   x: "int32LE",
