@@ -6,7 +6,7 @@ const packet = new BufferStruct({
   message: 'bytes*',
 })
 
-describe('bufferscript testing', () => {
+describe('buffersctruct testing', () => {
   test('proofs', () => {
     const packed = packet.pack({
       message: "A TypeError will be thrown if array is not an Array or another type appropriate for Buffer.from() variants.",
